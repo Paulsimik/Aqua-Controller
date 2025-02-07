@@ -1,47 +1,100 @@
 #include "Buzzer.h"
 
-Buzzer::Buzzer(int pin)
+Buzzer_Class BUZZER;
+
+void Buzzer_Class::InitBuzzer(uint32_t pin)
 {
     _pin = pin;
-    pinMode(_pin, OUTPUT);
-}
-
-void Buzzer::Beep()
-{
-    digitalWrite(_pin, HIGH);
-    delay(5);
-    digitalWrite(_pin, LOW);
-}
-
-void Buzzer::BeepDouble()
-{
-    digitalWrite(_pin, HIGH);
+    pinMode(pin, OUTPUT);
+    InternalTone();
     delay(50);
-    digitalWrite(_pin, LOW);
-    delay(15);
-    digitalWrite(_pin, HIGH);
+    InternalNoTone();
     delay(50);
-    digitalWrite(_pin, LOW);
+    InternalTone();
+    delay(50);
+    InternalNoTone();
 }
 
-void Buzzer::BeepLong()
+void Buzzer_Class::Tick()
 {
-    digitalWrite(_pin, HIGH);
-    delay(300);
-    digitalWrite(_pin, LOW);
+    switch (buzzerStatus)
+    {
+        case BEEP_IDLE: break;
+        case BEEP_SHORT:
+            if(millis() - beepMillis <= 50)
+            {
+                InternalTone();
+            }
+            else
+            {
+                InternalNoTone();
+                buzzerStatus = BEEP_IDLE;
+            }
+            break;
+        case BEEP_LONG:
+            if(millis() - beepMillis <= 150)
+            {
+                InternalTone();
+            }
+            else
+            {
+                InternalNoTone();
+                buzzerStatus = BEEP_IDLE;
+            }
+            break;
+        case BEEP_DOUBLE:
+            if(beepCount >= 2)
+                buzzerState = BEEP_IDLE;
+
+            if(millis() - beepMillis <= 200)
+            {
+                InternalTone();
+            }
+            else
+            {
+                InternalNoTone();
+                delay(10);
+                beepCount++;
+                beepMillis = millis();
+            }
+
+            break;
+    }
 }
 
-void Buzzer::BeepSetDefault()
+void Buzzer_Class::Single()
 {
-    digitalWrite(_pin, HIGH);
-    delay(250);
-    digitalWrite(_pin, LOW);
-    delay(100);
-    digitalWrite(_pin, HIGH);
-    delay(250);
-    digitalWrite(_pin, LOW);
-    delay(100);
-    digitalWrite(_pin, HIGH);
-    delay(250);
-    digitalWrite(_pin, LOW);
+    if(buzzerStatus != BEEP_IDLE) 
+        return;
+
+    buzzerStatus = BEEP_SHORT; 
+    beepMillis = millis();
+}
+
+void Buzzer_Class::Long()
+{
+    if(buzzerStatus != BEEP_IDLE) 
+        return;
+
+    buzzerStatus = BEEP_LONG; 
+    beepMillis = millis();
+}
+
+void Buzzer_Class::Double()
+{
+    if(buzzerStatus != BEEP_IDLE) 
+        return;
+
+    buzzerStatus = BEEP_DOUBLE; 
+    beepMillis = millis();
+}
+
+void Buzzer_Class::InternalTone()
+{
+    tone(_pin, 4000);
+}
+
+void Buzzer_Class::InternalNoTone()
+{
+    noTone(_pin);
 }

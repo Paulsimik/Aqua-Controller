@@ -1,6 +1,6 @@
 //##############################//
 //        Aqua Controller       //
-//          Version 1.3         //
+//          Version 1.4         //
 //            By Paul           //
 //##############################//
 
@@ -18,14 +18,14 @@
 #include <OneButton.h>
 #include <SPI.h>
 
-#define SD_PIN PA4
-#define ENCODER_A PA12
-#define ENCODER_B PA11
-#define RESERVED_OUTPUT PB0
+#define SD_PIN            PA4
+#define ENCODER_A         PA12
+#define ENCODER_B         PA11
+#define RESERVED_OUTPUT   PB0
+#define BUZZER_PIN        PA8
 
 RotaryEncoder *encoder = nullptr;
 TimeRTC timeRTC;
-Buzzer buzzer(PA8);
 OneButton btnOk(PA15);
 Pump pump_1(PA0);
 Pump pump_2(PA1);
@@ -36,7 +36,7 @@ Led colorLed(PA10);
 
 #define DISP_ITEM_ROWS 3
 #define DISP_CHAR_WIDTH 20
-#define PACING_MS 40
+#define PACING_MS 10
 #define FLASH_RST_CNT 10
 #define WAKEUP 150
 #define BACKLIGHT 300
@@ -162,7 +162,7 @@ struct Configuration
   uint8_t colorLed_maxDuty = 100;
 
   // PUMP 1
-  String pump1_name = "------Makron-------";
+  String pump1_name = "------FE-------";
   uint8_t pump1_onTimeHour = 12;
   uint8_t pump1_onTimeMinute = 0;
   uint8_t pump1_duty = 100;
@@ -182,7 +182,7 @@ struct Configuration
   bool pump2_enable = false;
 
   // PUMP 3
-  String pump3_name = "-----Fosfor--------";
+  String pump3_name = "-------------------";
   uint8_t pump3_onTimeHour = 12;
   uint8_t pump3_onTimeMinute = 0;
   uint8_t pump3_duty = 100;
@@ -250,6 +250,7 @@ void setup()
 {
   Wire.begin();
   SPI.begin();
+  BUZZER.InitBuzzer(BUZZER_PIN);
 
   LCD_Init();
   SD_Init();
@@ -273,7 +274,6 @@ void setup()
 
   timeRTC.Tick();
   CheckLedRepeatOn();
-  buzzer.BeepDouble();
 }
 
 // =======================================================================//
@@ -489,6 +489,7 @@ void Page_MenuHome()
   while (true)
   {
     Functions();
+    BUZZER.Tick();
 
     if(timeRTC.IsTimeUpdated() || updateAllItems)
     {
@@ -535,15 +536,14 @@ void Page_MenuHome()
     if(isLongPress)
     {
       isLongPress = false;
-      buzzer.BeepLong();
+      BUZZER.Double();
       whiteLed.Manual();
       colorLed.Manual();
-      buzzer.BeepDouble();
     }
 
     if(isClick)
     {
-      buzzer.BeepDouble();
+      BUZZER.Double();
       currPage = MENU_MAIN;
       isClick = false;
       return;
@@ -589,7 +589,7 @@ void Page_MenuMain()
     if(isClick)
     {
       isClick = false;
-      buzzer.BeepDouble();
+      BUZZER.Double();
       root_pntrPos = pntrPos;
       root_dispOffset = dispOffset;
 
@@ -669,14 +669,14 @@ void Page_MenuLedWhite()
       switch (pntrPos)
       {
         case 6: 
-          buzzer.BeepLong();
+          BUZZER.Long();
           SD_Save(); 
-          buzzer.BeepLong();
+          BUZZER.Long();
           Page_MenuLedWhite();
           return;
         case 7: 
           currPage = MENU_MAIN; 
-          buzzer.BeepDouble();
+          BUZZER.Double();
           return;
       }
     }
@@ -686,7 +686,7 @@ void Page_MenuLedWhite()
       isLongPress = false;
       updateValues = true;
       editMode = !editMode;
-      buzzer.BeepDouble();
+      BUZZER.Double();
     }
 
     if(editMode)
@@ -776,14 +776,14 @@ void Page_MenuLedColor()
       switch (pntrPos)
       {
         case 6: 
-          buzzer.BeepLong();
+          BUZZER.Long();
           SD_Save(); 
-          buzzer.BeepLong();
+          BUZZER.Long();
           Page_MenuLedColor();
           break;
         case 7: 
           currPage = MENU_MAIN; 
-          buzzer.BeepDouble();
+          BUZZER.Double();
           return;
       }
     }
@@ -793,7 +793,7 @@ void Page_MenuLedColor()
       isLongPress = false;
       updateValues = true;
       editMode = !editMode;
-      buzzer.BeepDouble();
+      BUZZER.Double();
     }
 
     if(editMode)
@@ -889,24 +889,24 @@ void Page_Pump_1()
       switch (pntrPos)
       {
         case 5:
-          buzzer.Beep();
+          BUZZER.Single();
           pump_1.Start();
           VolumeBottle(&_config.pump1_volume_bottle, _config.pump1_volume);
           break;
         case 6:
           encoder->setPosition(0);
           currPage = MENU_PUMP_1_CALIBRATION;
-          buzzer.BeepDouble();
+          BUZZER.Double();
           return;
         case 8: 
-          buzzer.BeepLong();
+          BUZZER.Long();
           SD_Save(); 
-          buzzer.BeepLong();
+          BUZZER.Long();
           Page_Pump_1();
           break;
         case 9: 
           currPage = MENU_MAIN; 
-          buzzer.BeepDouble();
+          BUZZER.Double();
           return;
       }
     }
@@ -919,13 +919,13 @@ void Page_Pump_1()
       {
         _config.pump1_volume_bottle = 450;
         warningVolumeBottle = false;
-        buzzer.BeepLong();
+        BUZZER.Long();
         return;
       }
 
       updateValues = true;
       editMode = !editMode;
-      buzzer.BeepDouble();
+      BUZZER.Double();
     }
 
     if(editMode)
@@ -993,7 +993,7 @@ void Page_Pump_1_Calibration()
     if(isClick)
     {
       isClick = false;
-      buzzer.Beep();
+      BUZZER.Single();
       updateAllItems = true;
       step = 2;
     }
@@ -1024,7 +1024,7 @@ void Page_Pump_1_Calibration()
 
     if(pump_1.IsCycleComplete())
     {
-      buzzer.BeepDouble();
+      BUZZER.Double();
       lcd.setCursor(0, 3);
       lcd.print("                    ");
       updateAllItems = true;
@@ -1066,7 +1066,7 @@ void Page_Pump_1_Calibration()
     {
       isClick = false;
       pump_1.SetParameters(_config.pump1_duty, 5, _config.pump1_calibrationOffset);
-      buzzer.Beep();
+      BUZZER.Single();
       updateAllItems = true;
       step = 4;
     }
@@ -1097,7 +1097,7 @@ void Page_Pump_1_Calibration()
 
     if(pump_1.IsCycleComplete())
     {
-      buzzer.BeepDouble();
+      BUZZER.Double();
       updateAllItems = true;
       step = 5;
     }
@@ -1121,7 +1121,7 @@ void Page_Pump_1_Calibration()
 
     if(isLongPress)
     {
-      buzzer.BeepLong();
+      BUZZER.Long();
       updateAllItems = true;
       step = 1;
     }
@@ -1131,7 +1131,7 @@ void Page_Pump_1_Calibration()
       isClick = false;
       pump_1.SetParameters(_config.pump1_duty, _config.pump1_volume, _config.pump1_calibrationOffset);
       encoder->setPosition(0);
-      buzzer.BeepDouble();
+      BUZZER.Double();
       currPage = MENU_PUMP_1;
       step = 1;
     }
@@ -1202,24 +1202,24 @@ void Page_Pump_2()
       switch (pntrPos)
       {
         case 5:
-          buzzer.Beep();
+          BUZZER.Single();
           pump_2.Start();
           VolumeBottle(&_config.pump2_volume_bottle, _config.pump2_volume);
         break;
         case 6:
           encoder->setPosition(0);
           currPage = MENU_PUMP_2_CALIBRATION;
-          buzzer.BeepDouble();
+          BUZZER.Double();
           return;
         case 8: 
-          buzzer.BeepLong();
+          BUZZER.Long();
           SD_Save(); 
-          buzzer.BeepLong();
+          BUZZER.Long();
           Page_Pump_2();
           break;
         case 9: 
           currPage = MENU_MAIN; 
-          buzzer.BeepDouble();
+          BUZZER.Double();
           return;
       }
     }
@@ -1232,13 +1232,13 @@ void Page_Pump_2()
       {
         _config.pump2_volume_bottle = 450;
         warningVolumeBottle = false;
-        buzzer.BeepLong();
+        BUZZER.Long();
         return;
       }
 
       updateValues = true;
       editMode = !editMode;
-      buzzer.BeepDouble();
+      BUZZER.Double();
     }
 
     if(editMode)
@@ -1306,7 +1306,7 @@ void Page_Pump_2_Calibration()
     if(isClick)
     {
       isClick = false;
-      buzzer.Beep();
+      BUZZER.Single();
       updateAllItems = true;
       step = 2;
     }
@@ -1337,7 +1337,7 @@ void Page_Pump_2_Calibration()
 
     if(pump_2.IsCycleComplete())
     {
-      buzzer.BeepDouble();
+      BUZZER.Double();
       lcd.setCursor(0, 3);
       lcd.print("                    ");
       updateAllItems = true;
@@ -1379,7 +1379,7 @@ void Page_Pump_2_Calibration()
     {
       isClick = false;
       pump_2.SetParameters(_config.pump2_duty, 5, _config.pump2_calibrationOffset);
-      buzzer.Beep();
+      BUZZER.Single();
       updateAllItems = true;
       step = 4;
     }
@@ -1410,7 +1410,7 @@ void Page_Pump_2_Calibration()
 
     if(pump_2.IsCycleComplete())
     {
-      buzzer.BeepDouble();
+      BUZZER.Double();
       updateAllItems = true;
       step = 5;
     }
@@ -1434,7 +1434,7 @@ void Page_Pump_2_Calibration()
 
     if(isLongPress)
     {
-      buzzer.BeepLong();
+      BUZZER.Long();
       updateAllItems = true;
       step = 1;
     }
@@ -1444,7 +1444,7 @@ void Page_Pump_2_Calibration()
       isClick = false;
       pump_2.SetParameters(_config.pump2_duty, _config.pump2_volume, _config.pump2_calibrationOffset);
       encoder->setPosition(0);
-      buzzer.BeepDouble();
+      BUZZER.Double();
       currPage = MENU_PUMP_2;
       step = 1;
     }
@@ -1515,24 +1515,24 @@ void Page_Pump_3()
       switch (pntrPos)
       {
         case 5:
-          buzzer.Beep();
+          BUZZER.Single();
           pump_3.Start();
           VolumeBottle(&_config.pump3_volume_bottle, _config.pump3_volume);
           break;
         case 6:
           encoder->setPosition(0);
           currPage = MENU_PUMP_3_CALIBRATION;
-          buzzer.BeepDouble();
+          BUZZER.Double();
           return;
         case 8: 
-          buzzer.BeepLong();
+          BUZZER.Long();
           SD_Save(); 
-          buzzer.BeepLong();
+          BUZZER.Long();
           Page_Pump_3();
           break;
         case 9: 
           currPage = MENU_MAIN; 
-          buzzer.BeepDouble();
+          BUZZER.Double();
           return;
       }
     }
@@ -1545,13 +1545,13 @@ void Page_Pump_3()
       {
         _config.pump3_volume_bottle = 450;
         warningVolumeBottle = false;
-        buzzer.BeepLong();
+        BUZZER.Long();
         return;
       }
 
       updateValues = true;
       editMode = !editMode;
-      buzzer.BeepDouble();
+      BUZZER.Double();
     }
 
     if(editMode)
@@ -1619,7 +1619,7 @@ void Page_Pump_3_Calibration()
     if(isClick)
     {
       isClick = false;
-      buzzer.Beep();
+      BUZZER.Single();
       updateAllItems = true;
       step = 2;
     }
@@ -1650,7 +1650,7 @@ void Page_Pump_3_Calibration()
 
     if(pump_3.IsCycleComplete())
     {
-      buzzer.BeepDouble();
+      BUZZER.Double();
       lcd.setCursor(0, 3);
       lcd.print("                    ");
       updateAllItems = true;
@@ -1692,7 +1692,7 @@ void Page_Pump_3_Calibration()
     {
       isClick = false;
       pump_3.SetParameters(_config.pump3_duty, 5, _config.pump3_calibrationOffset);
-      buzzer.Beep();
+      BUZZER.Single();
       updateAllItems = true;
       step = 4;
     }
@@ -1723,7 +1723,7 @@ void Page_Pump_3_Calibration()
 
     if(pump_3.IsCycleComplete())
     {
-      buzzer.BeepDouble();
+      BUZZER.Double();
       updateAllItems = true;
       step = 5;
     }
@@ -1747,7 +1747,7 @@ void Page_Pump_3_Calibration()
 
     if(isLongPress)
     {
-      buzzer.BeepLong();
+      BUZZER.Long();
       updateAllItems = true;
       step = 1;
     }
@@ -1757,7 +1757,7 @@ void Page_Pump_3_Calibration()
       isClick = false;
       pump_3.SetParameters(_config.pump3_duty, _config.pump3_volume, _config.pump3_calibrationOffset);
       encoder->setPosition(0);
-      buzzer.BeepDouble();
+      BUZZER.Double();
       currPage = MENU_PUMP_3;
       step = 1;
     }
@@ -1828,24 +1828,24 @@ void Page_Pump_4()
       switch (pntrPos)
       {
         case 5:
-          buzzer.Beep();
+          BUZZER.Single();
           pump_4.Start();
           VolumeBottle(&_config.pump4_volume_bottle, _config.pump4_volume);
         break;
         case 6:
           encoder->setPosition(0);
           currPage = MENU_PUMP_4_CALIBRATION;
-          buzzer.BeepDouble();
+          BUZZER.Double();
           return;
         case 8: 
-          buzzer.BeepLong();
+          BUZZER.Long();
           SD_Save(); 
-          buzzer.BeepLong();
+          BUZZER.Long();
           Page_Pump_4();
           break;
         case 9: 
           currPage = MENU_MAIN; 
-          buzzer.BeepDouble();
+          BUZZER.Double();
           return;
       }
     }
@@ -1858,13 +1858,13 @@ void Page_Pump_4()
       {
         _config.pump4_volume_bottle = 450;
         warningVolumeBottle = false;
-        buzzer.BeepLong();
+        BUZZER.Long();
         return;
       }
 
       updateValues = true;
       editMode = !editMode;
-      buzzer.BeepDouble();
+      BUZZER.Double();
     }
 
     if(editMode)
@@ -1932,7 +1932,7 @@ void Page_Pump_4_Calibration()
     if(isClick)
     {
       isClick = false;
-      buzzer.Beep();
+      BUZZER.Single();
       updateAllItems = true;
       step = 2;
     }
@@ -1963,7 +1963,7 @@ void Page_Pump_4_Calibration()
 
     if(pump_4.IsCycleComplete())
     {
-      buzzer.BeepDouble();
+      BUZZER.Double();
       lcd.setCursor(0, 3);
       lcd.print("                    ");
       updateAllItems = true;
@@ -2005,7 +2005,7 @@ void Page_Pump_4_Calibration()
     {
       isClick = false;
       pump_4.SetParameters(_config.pump4_duty, 5, _config.pump4_calibrationOffset);
-      buzzer.Beep();
+      BUZZER.Single();
       updateAllItems = true;
       step = 4;
     }
@@ -2036,7 +2036,7 @@ void Page_Pump_4_Calibration()
 
     if(pump_4.IsCycleComplete())
     {
-      buzzer.BeepDouble();
+      BUZZER.Double();
       updateAllItems = true;
       step = 5;
     }
@@ -2060,7 +2060,7 @@ void Page_Pump_4_Calibration()
 
     if(isLongPress)
     {
-      buzzer.BeepLong();
+      BUZZER.Long();
       updateAllItems = true;
       step = 1;
     }
@@ -2070,7 +2070,7 @@ void Page_Pump_4_Calibration()
       isClick = false;
       pump_4.SetParameters(_config.pump4_duty, _config.pump4_volume, _config.pump4_calibrationOffset);
       encoder->setPosition(0);
-      buzzer.BeepDouble();
+      BUZZER.Double();
       currPage = MENU_PUMP_4;
       step = 1;
     }
@@ -2124,7 +2124,7 @@ void Page_MenuSettings()
 
     if(isDoubleClick && pntrPos == 4)
     {
-      buzzer.BeepSetDefault();
+      //buzzer.BeepSetDefault();
       Set_Defaults();
       Page_MenuSettings();
     }
@@ -2136,12 +2136,12 @@ void Page_MenuSettings()
       switch (pntrPos)
       {
         case 6: 
-          buzzer.BeepLong();
+          BUZZER.Long();
           timeRTC.SetTime(DateTime(_config.years, _config.months, _config.days, _config.hours, _config.minutes));
           break;
         case 8: 
           currPage = MENU_MAIN; 
-          buzzer.BeepDouble();
+          BUZZER.Double();
           return;
       }
     }
@@ -2150,7 +2150,7 @@ void Page_MenuSettings()
     {
       isLongPress = false;
       editMode = !editMode;
-      buzzer.BeepDouble();
+      BUZZER.Double();
     }
 
     if(editMode)
@@ -2236,7 +2236,7 @@ void AdjustBoolean(bool *v)
   if(encoderPos > 0 || encoderPos < 0)
   {
     *v = !*v;
-    buzzer.Beep();
+    BUZZER.Single();
     updateItemValue = true;
   }
 }
@@ -2248,7 +2248,7 @@ void AdjustUint8_t(uint8_t *v, uint8_t min, uint8_t max)
     if(*v > min)
     {
       *v = *v - 1;
-      buzzer.Beep();
+      BUZZER.Single();
       encoder->setPosition(0);
       updateItemValue = true;
     }
@@ -2259,7 +2259,7 @@ void AdjustUint8_t(uint8_t *v, uint8_t min, uint8_t max)
     if(*v < max)
     {
       *v = *v + 1;
-      buzzer.Beep();
+      BUZZER.Single();
       encoder->setPosition(0);
       updateItemValue = true;
     }
@@ -2273,7 +2273,7 @@ void AdjustUint16_t(uint16_t *v, uint16_t min, uint16_t max)
     if(*v > min)
     {
       *v = *v - 1;
-      buzzer.Beep();
+      BUZZER.Single();
       encoder->setPosition(0);
       updateItemValue = true;
     }
@@ -2284,7 +2284,7 @@ void AdjustUint16_t(uint16_t *v, uint16_t min, uint16_t max)
     if(*v < max)
     {
       *v = *v + 1;
-      buzzer.Beep();
+      BUZZER.Single();
       encoder->setPosition(0);
       updateItemValue = true;
     }
@@ -2298,7 +2298,7 @@ void AdjustFloat(float *v, float min, float max)
     if(*v > min)
     {
       *v = *v - 0.1;
-      buzzer.Beep();
+      BUZZER.Single();
       updateItemValue = true;
     }
   }
@@ -2308,7 +2308,7 @@ void AdjustFloat(float *v, float min, float max)
     if(*v < max)
     {
       *v = *v + 0.1;
-      buzzer.Beep();
+      BUZZER.Single();
       updateItemValue = true;
     }
   }
@@ -2332,7 +2332,7 @@ void AdjustTime(byte *hour, byte *minute)
       }
     }
 
-    buzzer.Beep();
+    BUZZER.Single();
     encoder->setPosition(0);
     updateItemValue = true;
   }
@@ -2351,7 +2351,7 @@ void AdjustTime(byte *hour, byte *minute)
       }
     }
 
-    buzzer.Beep();
+    BUZZER.Single();
     encoder->setPosition(0);
     updateItemValue = true;
   }
@@ -2369,7 +2369,7 @@ void DoPointerNavigation()
     wakeUp = true;
     flashCntr = 0;
     PrintPointer();
-    buzzer.Beep();
+    BUZZER.Single();
 
     if(pntrPos - dispOffset == 1)
     {
@@ -2385,7 +2385,7 @@ void DoPointerNavigation()
     wakeUp = true;
     flashCntr = 0;
     PrintPointer();
-    buzzer.Beep();
+    BUZZER.Single();
 
     if(pntrPos - dispOffset == DISP_ITEM_ROWS)
     {
@@ -2614,9 +2614,9 @@ void VolumeBottle(float *volumeBottle, float volume)
 
   if(*volumeBottle < 50)
   {
-    buzzer.BeepLong();
-    buzzer.BeepDouble();
-    buzzer.BeepLong();
+    BUZZER.Long();
+    BUZZER.Double();
+    BUZZER.Long();
     warningVolumeBottle = true;
   }
 }
@@ -2699,7 +2699,7 @@ void Set_Defaults()
 
   file.close();
   SD_Load();
-  buzzer.BeepSetDefault();
+  //buzzer.BeepSetDefault();
 }
 
 void SD_Init()
@@ -2710,7 +2710,7 @@ void SD_Init()
     lcd.print(F("Failed To Initialize"));
     lcd.setCursor(0, 1);
     lcd.print(F("      SD Card!      "));
-    buzzer.BeepLong();
+    BUZZER.Long();
   }
 
   lcd.setCursor(0, 0);
@@ -2825,7 +2825,7 @@ void SD_Save()
   {
     lcd.setCursor(0, 0);
     lcd.print("Create File Failed! ");
-    buzzer.BeepLong();
+    BUZZER.Long();
     delay(1000);
   }
 
@@ -2893,7 +2893,7 @@ void SD_Save()
   {
     lcd.setCursor(0, 1);
     lcd.print("Write To File Failed");
-    buzzer.BeepLong();
+    BUZZER.Long();
     delay(1000);
   }
 
@@ -2919,7 +2919,7 @@ void LCD_Init()
   lcd.setCursor(2, 1);
   lcd.print("Aqua Controller");
   lcd.setCursor(4, 2);
-  lcd.print("V1.3 by Paul");
+  lcd.print("V1.4 by Paul");
   lcd.setCursor(0, 3);
   lcd.print("####################");
   delay(1500);
